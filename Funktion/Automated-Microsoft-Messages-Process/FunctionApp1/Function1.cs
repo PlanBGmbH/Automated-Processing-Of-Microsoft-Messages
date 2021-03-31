@@ -72,29 +72,38 @@ namespace FunctionApp1
 
                 foreach (var assignee in assigneeList.AssigneeList)
                 {
-                    if (assignee.bucketName == message.AffectedWorkloadDisplayNames[0])
+                    try
                     {
-                        plannerMessage = new PlannerMessage();
-                        plannerMessage.Id = message.Id;
-                        plannerMessage.Title = message.Title;
-                        plannerMessage.Categories = message.ActionType + "," + message.Classification + "," + message.Category;
-                        plannerMessage.DueDate = message.ActionRequiredByDate;
-                        plannerMessage.Updated = message.LastUpdatedTime;
-                        string FullMessage = "";
-                        foreach (var item in message.Messages)
+                        if (assignee.bucketName == message.AffectedWorkloadDisplayNames[0])
                         {
-                            FullMessage += item.MessageText;
+                            plannerMessage = new PlannerMessage();
+                            plannerMessage.Id = message.Id;
+                            plannerMessage.Title = message.Title;
+                            plannerMessage.Categories = message.ActionType + "," + message.Classification + "," + message.Category;
+                            plannerMessage.DueDate = message.ActionRequiredByDate;
+                            plannerMessage.Updated = message.LastUpdatedTime;
+                            string FullMessage = "";
+                            foreach (var item in message.Messages)
+                            {
+                                FullMessage += item.MessageText;
+                            }
+                            plannerMessage.Description = FullMessage;
+                            plannerMessage.Reference = message.ExternalLink;
+                            plannerMessage.Product = message.AffectedWorkloadDisplayNames[0];
+                            plannerMessage.BucketId = assignee.bucketId;
+                            plannerMessage.Assignee = assignee.assigneeId;
+
+
+
+                            return JsonConvert.SerializeObject(plannerMessage);
                         }
-                        plannerMessage.Description = FullMessage;
-                        plannerMessage.Reference = message.ExternalLink;
-                        plannerMessage.Product = message.AffectedWorkloadDisplayNames[0];
-                        plannerMessage.BucketId = assignee.bucketId;
-                        plannerMessage.Assignee = assignee.assigneeId;
-
-
-
-                        return JsonConvert.SerializeObject(plannerMessage);
                     }
+                    catch (Exception e)
+                    {
+                        Console.WriteLine(e);
+                        throw;
+                    }
+                   
                 }
 
             }
@@ -102,15 +111,6 @@ namespace FunctionApp1
             return "";
 
         }
-
-
-        [FunctionName("QueueTriggerCSharp")]
-        public static void Run([QueueTrigger("myqueue-items",
-            Connection = "QueueStorage")]string myQueueItem, ILogger log)
-        {
-            log.LogInformation($"C# Queue trigger function processed: {myQueueItem}");
-        }
-
 
 
     }
