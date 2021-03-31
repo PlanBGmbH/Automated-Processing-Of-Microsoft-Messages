@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
 
 
@@ -10,17 +11,35 @@ namespace FunctionApp1.Class
     /// </summary>
     public class MessageValue
     {
-        public string? Id { get; set; }
-        public string? Name { get; set; }
-        public object? Title { get; set; }
-        public DateTime? StartTime { get; set; }
-        public DateTime? EndTime { get; set; }
-        public string? Status { get; set; }
-        public List<Message>? Messages { get; set; }
+
+        //public List<string>? Workload { get; set; }
+        public string[] AffectedWorkloadDisplayNames { get; set; }
+        public string Id { get; set; }
+        public string Title { get; set; }
+        public string MessageType { get; set; }
+        public string ActionType { get; set; }
+        public string Classification { get; set; }
+        public string Category { get; set; }
+        public string ExternalLink { get; set; }
+        public DateTime? ActionRequiredByDate { get; set; }
+        //public string? Status { get; set; }
+        public Message[] Messages { get; set; }
         public DateTime? LastUpdatedTime { get; set; }
-        public string? Workload { get; set; }
-        public string? WorkloadDisplayName { get; set; }
-        public string? Feature { get; set; }
-        public string? FeatureDisplayName { get; set; }
+
+
     }
+
+
+    public class test
+    {
+        string WorkloadDisplayName { get; set; }
+
+    }
+
+
+
+
+
+
+
 }

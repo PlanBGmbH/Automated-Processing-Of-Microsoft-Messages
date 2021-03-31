@@ -6,6 +6,8 @@ using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 
 namespace FunctionApp1
 {
@@ -14,7 +16,8 @@ namespace FunctionApp1
         static readonly HttpClient client = new HttpClient();
 
         [FunctionName("OnTimerGetMessages")]
-        public static async void OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
+        [return: Queue("myqueue-items")]
+        public static async Task<string> OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
@@ -44,23 +47,69 @@ namespace FunctionApp1
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(tok.TokenType, tok.AccessToken);
             string contentType = "application/json";
             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
-            HttpResponseMessage MessageResponse = await client.GetAsync(messageUri);
+            HttpResponseMessage MessageResponse = await client.GetAsync(messageUri + "?$filter=MessageType eq 'MessageCenter'");
             jsonContent = await MessageResponse.Content.ReadAsStringAsync();
-            Root messageRoot = JsonConvert.DeserializeObject<Root>(jsonContent);
+            RootMessage messageRoot = JsonConvert.DeserializeObject<RootMessage>(jsonContent);
+            RootAssigneeList assigneeList;
+            PlannerMessage plannerMessage;
 
-            var test = 1;
 
 
+
+
+
+
+            using (StreamReader r = new StreamReader(@"C:\Users\admin\source\repos\Automated-Processing-Of-Microsoft-Messages\Funktion\Automated-Microsoft-Messages-Process\FunctionApp1\Configuration\AssigneeListValues.json"))
+            {
+                string json = r.ReadToEnd();
+                assigneeList = JsonConvert.DeserializeObject<RootAssigneeList>(json);
+            }
+
+
+
+            foreach (var message in messageRoot.value)
+            {
+
+                foreach (var assignee in assigneeList.AssigneeList)
+                {
+                    if (assignee.bucketName == message.AffectedWorkloadDisplayNames[0])
+                    {
+                        plannerMessage = new PlannerMessage();
+                        plannerMessage.Id = message.Id;
+                        plannerMessage.Title = message.Title;
+                        plannerMessage.Categories = message.ActionType + "," + message.Classification + "," + message.Category;
+                        plannerMessage.DueDate = message.ActionRequiredByDate;
+                        plannerMessage.Updated = message.LastUpdatedTime;
+                        string FullMessage = "";
+                        foreach (var item in message.Messages)
+                        {
+                            FullMessage += item.MessageText;
+                        }
+                        plannerMessage.Description = FullMessage;
+                        plannerMessage.Reference = message.ExternalLink;
+                        plannerMessage.Product = message.AffectedWorkloadDisplayNames[0];
+                        plannerMessage.BucketId = assignee.bucketId;
+                        plannerMessage.Assignee = assignee.assigneeId;
+
+
+
+                        return JsonConvert.SerializeObject(plannerMessage);
+                    }
+                }
+
+            }
+
+            return "";
 
         }
 
 
-        [FunctionName("OnQueuePostMessagesIntoPlanner")]
-        public static void Run([TimerTrigger("0 */5 * * * *")] TimerInfo myTimer, ILogger log)
+        [FunctionName("QueueTriggerCSharp")]
+        public static void Run([QueueTrigger("myqueue-items",
+            Connection = "QueueStorage")]string myQueueItem, ILogger log)
         {
-            log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
+            log.LogInformation($"C# Queue trigger function processed: {myQueueItem}");
         }
-
 
 
 

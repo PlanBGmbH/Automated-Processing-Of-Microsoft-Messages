@@ -7,8 +7,8 @@ namespace FunctionApp1.Class
     /// <summary>
     /// Summary description for Message
     /// </summary>
-    public class Root
+    public class RootMessage
     {
-        public List<MessageValue>? value { get; set; }
+        public MessageValue[]? value { get; set; }
     }
 }
