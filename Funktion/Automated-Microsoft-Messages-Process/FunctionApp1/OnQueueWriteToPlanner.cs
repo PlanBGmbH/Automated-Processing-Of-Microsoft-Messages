@@ -13,6 +13,8 @@ using Microsoft.Graph.Auth;
 using System.Security;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System.Threading.Tasks;
+using System.Security.Claims;
+using System.Linq;
 
 namespace FunctionApp1
 {
@@ -25,6 +27,49 @@ namespace FunctionApp1
             PlannerMessage plannerMessage;
             plannerMessage = JsonConvert.DeserializeObject<PlannerMessage>(myQueueItem);
 
+
+            var clientId = System.Environment.GetEnvironmentVariable("client_id");
+            var secret = System.Environment.GetEnvironmentVariable("client_secret");
+           
+            var tenantID = System.Environment.GetEnvironmentVariable("tenant");
+            var user = System.Environment.GetEnvironmentVariable("username");
+            var password = System.Environment.GetEnvironmentVariable("userpassword");
+            SecureString securePwd = new SecureString();
+            for (int i = 0; i < password.Length; i++)
+            {
+                securePwd.AppendChar(password[i]);
+            }
+
+
+
+            //var credentials = new UserPasswordCredential(userName, password);
+            //var credentials = new Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential(email, password);
+            //S var user = new Microsoft.IdentityModel.Clients.ActiveDirectory.UserAssertion(email);
+            //var authContext = new AuthenticationContext($"https://login.windows.net/planbcloud.onmicrosoft.com");
+            //var token = await authContext.AcquireTokenAsync("https://graph.microsoft.com", client,);
+            //var accessToken = token.AccessToken;
+
+
+
+     
+
+
+           
+
+            //var graphServiceClient = new GraphServiceClient(
+            //    new DelegateAuthenticationProvider((requestMessage) =>
+            //    {
+            //        requestMessage
+            //    .Headers
+            //    .Authorization = new AuthenticationHeaderValue("bearer", accessToken);
+
+            //        return Task.CompletedTask;
+            //    }));
+
+
+            //var tasks = await graphServiceClient.Planner.Plans[System.Environment.GetEnvironmentVariable("messageCenterPlanId")].Tasks
+            //                .Request()
+            //               .GetAsync();
 
 
             //IConfidentialClientApplication confidentialClient = ConfidentialClientApplicationBuilder
@@ -63,32 +108,7 @@ namespace FunctionApp1
 
 
 
-            //var clientId = System.Environment.GetEnvironmentVariable("client_id");
-            //var secret = System.Environment.GetEnvironmentVariable("client_secret");
-            //var domain = "planbcloud.onmicrosoft.com";
-            //var tenantID = System.Environment.GetEnvironmentVariable("tenant");
-            //var email = System.Environment.GetEnvironmentVariable("username");
-            //var password = System.Environment.GetEnvironmentVariable("userpassword");
-            //SecureString securePwd = new SecureString();
-            //for (int i = 0; i < password.Length; i++)
-            //{
-            //    securePwd.AppendChar(password[i]);
-            //}
 
-            //var credentials = new Microsoft.IdentityModel.Clients.ActiveDirectory.ClientCredential(clientId, secret);
-            //var authContext = new AuthenticationContext($"https://login.microsoftonline.com/{domain}/");
-            //var token = await authContext.AcquireTokenAsync("https://graph.microsoft.com/", credentials);
-            //var accessToken = token.AccessToken;
-
-            //var graphServiceClient = new GraphServiceClient(
-            //    new DelegateAuthenticationProvider((requestMessage) =>
-            //    {
-            //        requestMessage
-            //    .Headers
-            //    .Authorization = new AuthenticationHeaderValue("bearer", accessToken);
-
-            //        return Task.CompletedTask;
-            //    }));
 
 
             //IPublicClientApplication publicClientApplication = PublicClientApplicationBuilder
@@ -106,9 +126,7 @@ namespace FunctionApp1
 
 
 
-            //var tasks = await graphServiceClient.Planner.Plans[System.Environment.GetEnvironmentVariable("messageCenterPlanId")].Tasks
-            //                .Request()
-            //               .GetAsync();
+
             string asd = "";
 
         }
