@@ -7,10 +7,24 @@ using System.Text;
 
 namespace FunctionApp1.Class
 {
-    class AssigneeList
+    /// <summary>
+    /// AssigneeList.
+    /// </summary>
+    internal class AssigneeList
     {
-        public string bucketId { get; set; }
-        public string assigneeId { get; set; }
-        public string bucketName { get; set; }
+        /// <summary>
+        /// Gets or Sets BucketId.
+        /// </summary>
+        public string BucketId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets AssigneeId.
+        /// </summary>
+        public string AssigneeId { get; set; }
+
+        /// <summary>
+        /// Gets or Sets BucketId.
+        /// </summary>
+        public string BucketName { get; set; }
     }
 }

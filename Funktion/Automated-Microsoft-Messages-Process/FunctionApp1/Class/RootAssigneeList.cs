@@ -7,8 +7,14 @@ using System.Text;
 
 namespace FunctionApp1.Class
 {
-    class RootAssigneeList
+    /// <summary>
+    /// RootAssigneeList.
+    /// </summary>
+    internal class RootAssigneeList
     {
+        /// <summary>
+        /// Gets or Sets AssigneeList.
+        /// </summary>
         public List<AssigneeList> AssigneeList { get; set; }
     }
 }

@@ -29,8 +29,17 @@ namespace FunctionApp1
     /// </summary>
     public static class TimerFunction
     {
-        static readonly HttpClient client = new HttpClient();
+        /// <summary>
+        /// Gets or Sets Client.
+        /// </summary>
+        private static readonly HttpClient Client = new HttpClient();
 
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="myTimer">myTimer.</param>
+        /// <param name="log">log.</param>
+        /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
         [FunctionName("OnTimerGetMessages")]
         [return: Queue("myqueue-items")]
         public static async Task<string> OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
@@ -51,21 +60,21 @@ namespace FunctionApp1
             bool hasError = false;
             var form = new Dictionary<string, string>
                 {
-                    {"grant_type", grant_type},
-                    {"resource", resource},
-                    {"client_id", client_id},
-                    {"client_secret", client_secret},
+                    { "grant_type", grant_type },
+                    { "resource", resource },
+                    { "client_id", client_id },
+                    { "client_secret", client_secret },
                 };
-            HttpResponseMessage tokenResponse = await client.PostAsync(baseAddress, new FormUrlEncodedContent(form));
+            HttpResponseMessage tokenResponse = await Client.PostAsync(baseAddress, new FormUrlEncodedContent(form));
             var jsonContent = await tokenResponse.Content.ReadAsStringAsync();
             Token tok = JsonConvert.DeserializeObject<Token>(jsonContent);
 
             Uri messageUri = new Uri(messageUriString);
-            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(tok.TokenType, tok.AccessToken);
+            Client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(tok.TokenType, tok.AccessToken);
             string contentType = "application/json";
-            client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
-            HttpResponseMessage MessageResponse = await client.GetAsync(messageUri + "?$filter=MessageType eq 'MessageCenter'");
-            jsonContent = await MessageResponse.Content.ReadAsStringAsync();
+            Client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue(contentType));
+            HttpResponseMessage messageResponse = await Client.GetAsync(messageUri + "?$filter=MessageType eq 'MessageCenter'");
+            jsonContent = await messageResponse.Content.ReadAsStringAsync();
             RootMessage messageRoot = JsonConvert.DeserializeObject<RootMessage>(jsonContent);
             RootAssigneeList assigneeList;
             PlannerMessage plannerMessage;
@@ -92,7 +101,7 @@ namespace FunctionApp1
             }
 
             string redirect = "https://localhost/queueTrigger";
-            string authority = String.Format("https://login.microsoftonline.com/{0}", tenantID);
+            string authority = string.Format("https://login.microsoftonline.com/{0}", tenantID);
             string[] scopes = { "Group.ReadWrite.All", "Tasks.ReadWrite" };
             IPublicClientApplication publicClientApplication = PublicClientApplicationBuilder
                 .Create(clientId)
@@ -119,7 +128,7 @@ namespace FunctionApp1
                 {
                     try
                     {
-                        if (assignee.bucketName == message.AffectedWorkloadDisplayNames[0])
+                        if (assignee.BucketName == message.AffectedWorkloadDisplayNames[0])
                         {
                             foreach (var item in tasks)
                             {
@@ -127,7 +136,7 @@ namespace FunctionApp1
                                 {
                                     existingTask = item;
                                     exists = true;
-                                    if (message.Title == item.Title && assignee.bucketId == item.BucketId)
+                                    if (message.Title == item.Title && assignee.BucketId == item.BucketId)
                                     {
                                         exists = false;
 
@@ -148,23 +157,23 @@ namespace FunctionApp1
                                 plannerMessage.Categories = message.ActionType + "," + message.Classification + "," + message.Category;
                                 plannerMessage.DueDate = message.ActionRequiredByDate;
                                 plannerMessage.Updated = message.LastUpdatedTime;
-                                string FullMessage = string.Empty;
+                                string fullMessage = string.Empty;
                                 foreach (var item in message.Messages)
                                 {
-                                    FullMessage += item.MessageText;
+                                    fullMessage += item.MessageText;
                                 }
 
-                                plannerMessage.Description = FullMessage;
+                                plannerMessage.Description = fullMessage;
                                 plannerMessage.Reference = message.ExternalLink;
                                 plannerMessage.Product = message.AffectedWorkloadDisplayNames[0];
-                                plannerMessage.BucketId = assignee.bucketId;
-                                plannerMessage.Assignee = assignee.assigneeId;
+                                plannerMessage.BucketId = assignee.BucketId;
+                                plannerMessage.Assignee = assignee.AssigneeId;
 
                                 rootPlannerMessage.RootPlannerMessage1.Add(plannerMessage);
                             }
                             else
                             {
-                                string blobName = String.Format("NewTask-{0}-{1}", message.Title, assignee.bucketId);
+                                string blobName = string.Format("NewTask-{0}-{1}", message.Title, assignee.BucketId);
                                 BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
 
                                 Microsoft.Graph.PlannerTask taskFromBlob;
@@ -258,6 +267,11 @@ namespace FunctionApp1
                                 }
                                 catch (Exception e)
                                 {
+                                    hasError = true;
+                                    trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                                    trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                                    log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                                    log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                                 }
 
                                 if (somethingChanged)
@@ -299,7 +313,7 @@ namespace FunctionApp1
 
                 stream.Position = 0;
                 DateTime time = DateTime.Now;
-                string blobName = String.Format("newmessages-{0}", time.Ticks);
+                string blobName = string.Format("newmessages-{0}", time.Ticks);
                 blobContainer.UploadBlob(blobName, stream);
                 return blobName;
             }
