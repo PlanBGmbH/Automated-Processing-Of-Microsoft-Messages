@@ -13,11 +13,11 @@ using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using System.Linq;
-using PlannerTask = Microsoft.Graph.PlannerTask;
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Collections.Generic;
 
 namespace FunctionApp1
 {
@@ -180,15 +180,41 @@ namespace FunctionApp1
 
 
 
+                Class.PlannerTask plannertask = new Class.PlannerTask();
 
 
+
+
+
+
+                try
+                {
+
+                
+                string jsonString = JsonConvert.SerializeObject(newTask);
+
+                plannertask = JsonConvert.DeserializeObject<Class.PlannerTask>(jsonString);
+
+                MemoryStream stream = new MemoryStream();
+                formatter = new BinaryFormatter();
+                formatter.Serialize(stream, plannertask);
+
+                stream.Position = 0;
+                string blobName = String.Format("NewTask-{0}-{1}", newTask.Title,newTask.BucketId);
+                BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+                            blobContainerUpload.UploadBlob(blobName, stream);
 
 
                 var tmp = await graphClient.Planner.Tasks
                                         .Request()
                                         .AddAsync(newTask);
 
+                }
+                catch (Exception)
+                {
 
+                    
+                }
                 var tsst = "asd";
             }
 

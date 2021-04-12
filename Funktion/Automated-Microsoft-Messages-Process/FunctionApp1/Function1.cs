@@ -15,6 +15,7 @@ using Microsoft.Graph;
 using Azure.Storage.Blobs;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using Microsoft.Azure.Storage.Blob;
 
 namespace FunctionApp1
 {
@@ -89,7 +90,7 @@ namespace FunctionApp1
             }
 
             string redirect = "https://localhost/queueTrigger";
-            string authority =String.Format("https://login.microsoftonline.com/{0}", tenantID);
+            string authority = String.Format("https://login.microsoftonline.com/{0}", tenantID);
             string[] scopes = { "Group.ReadWrite.All", "Tasks.ReadWrite" };
             IPublicClientApplication publicClientApplication = PublicClientApplicationBuilder
                 .Create(clientId)
@@ -137,6 +138,7 @@ namespace FunctionApp1
                                     if (message.Title == item.Title && assignee.bucketId == item.BucketId)
                                     {
                                         exists = false;
+
                                         break;
                                     }
                                 }
@@ -176,10 +178,113 @@ namespace FunctionApp1
                             }
                             else
                             {
+                                string blobName = String.Format("NewTask-{0}-{1}", message.Title, assignee.bucketId);
+                                BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
 
+
+                                Microsoft.Graph.PlannerTask taskFromBlob;
+                                Microsoft.Azure.Storage.CloudStorageAccount storageAccount = Microsoft.Azure.Storage.CloudStorageAccount.Parse(connectionString);
+                                CloudBlobClient serviceClient = storageAccount.CreateCloudBlobClient();
+                                CloudBlobContainer container = serviceClient.GetContainerReference($"existingmessages");
+                                bool somethingChanged = false;
+                                IFormatter formatter = new BinaryFormatter();
+                                try
+                                {
+                                    CloudBlockBlob blob = container.GetBlockBlobReference($"{blobName}");
+                                    string dwadawd = blob.DownloadTextAsync().Result;
+                                    var text = await blob.DownloadTextAsync();
+                                    taskFromBlob = JsonConvert.DeserializeObject<Microsoft.Graph.PlannerTask>(text);
+                                   
+                                 
+                                    if (taskFromBlob.AppliedCategories != existingTask.AppliedCategories)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.Assignments != existingTask.Assignments)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.BucketId != existingTask.BucketId)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.CompletedDateTime != existingTask.CompletedDateTime)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.CreatedBy != existingTask.CreatedBy)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.CreatedDateTime != existingTask.CreatedDateTime)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.Details != existingTask.Details)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.DueDateTime != existingTask.DueDateTime)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.Id != existingTask.Id)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.ODataType != existingTask.ODataType)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.OrderHint != existingTask.OrderHint)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.PercentComplete != existingTask.PercentComplete)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.PlanId != existingTask.PlanId)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.StartDateTime != existingTask.StartDateTime)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                    if (taskFromBlob.Title != existingTask.Title)
+                                    {
+                                        somethingChanged = true;
+                                    }
+                                }
+                                catch (Exception e)
+                                {
+
+                                }
+
+                            
+                               
+
+                                if (somethingChanged)
+                                {
+                                    Class.PlannerTask plannertask = new Class.PlannerTask();
+
+                                    string jsonString = JsonConvert.SerializeObject(existingTask);
+
+                                    plannertask = JsonConvert.DeserializeObject<Class.PlannerTask>(jsonString);
+
+                                    MemoryStream stream = new MemoryStream();
+                                    formatter = new BinaryFormatter();
+                                    formatter.Serialize(stream, plannertask);
+
+                                    stream.Position = 0;
+
+                                    BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+                                    blobContainerUpload.DeleteBlob(blobName);
+                                    blobContainerUpload.UploadBlob(blobName, stream);
+                                }
                             }
                         }
-
                     }
                     catch (Exception e)
                     {
@@ -187,17 +292,13 @@ namespace FunctionApp1
                     }
 
                 }
-
-
-
-
             }
             try
             {
                 MemoryStream stream = new MemoryStream();
                 IFormatter formatter = new BinaryFormatter();
                 formatter.Serialize(stream, rootPlannerMessage);
-                
+
                 stream.Position = 0;
                 DateTime time = DateTime.Now;
                 string blobName = String.Format("newmessages-{0}", time.Ticks);
