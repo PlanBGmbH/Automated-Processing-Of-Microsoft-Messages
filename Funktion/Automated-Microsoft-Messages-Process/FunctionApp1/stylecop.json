@@ -1,0 +1,48 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "indentation": {
+      "indentationSize": 4,
+      "tabSize": 4,
+      "useTabs": false
+    },
+    "spacingRules": {
+    },
+    "readabilityRules": {
+    },
+    "orderingRules": {
+      "elementOrder": [ "kind", "accessibility", "constant", "static", "readonly" ],
+      "systemUsingDirectivesFirst": true,
+      "usingDirectivesPlacement": "outsideNamespace",
+      "blankLinesBetweenUsingGroups": "require"
+    },
+    "namingRules": {
+      "allowCommonHungarianPrefixes": true,
+      "allowedHungarianPrefixes": []
+    },
+    "maintainabilityRules": {
+      "topLevelTypes": [ "class", "delegate", "enum", "interface", "struct" ]
+    },
+    "layoutRules": {
+      "newlineAtEndOfFile": "allow",
+      "allowConsecutiveUsings": true
+    },
+    "documentationRules": {
+      "headerDecoration": "-----------------------------------------------------------------------",
+      "variables": {
+        "authorName": "Peter Schneider"
+      },
+      "companyName": "PlanB. GmbH",
+      "copyrightText": "Copyright (c) {companyName}. All rights reserved.\nAuthor: {authorName}",
+      "xmlHeader": false,
+      "documentInterfaces": true,
+      "documentExposedElements": true,
+      "documentInternalElements": true,
+      "documentPrivateElements": true,
+      "documentPrivateFields": true,
+      "documentationCulture": "en-US",
+      "fileNamingConvention": "stylecop"
+    }
+  }
+}
+  

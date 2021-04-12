@@ -5,6 +5,14 @@
     <UserSecretsId>522ca934-94f4-4806-b981-c62ff9ce6b9e</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <None Remove="Settings.StyleCop" />
+    <None Remove="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
+    <AdditionalFiles Include="Settings.StyleCop" />
+    <AdditionalFiles Include="stylecop.json" />
+  </ItemGroup>
+  <ItemGroup>
     <PackageReference Include="Azure.Storage.Blobs" Version="12.8.1" />
     <PackageReference Include="Martins.Azure.WebJobs.Extensions.AuthTokens" Version="1.0.0-beta7" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Abstractions" Version="2.2.0" />
@@ -17,6 +25,10 @@
     <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="6.9.0" />
     <PackageReference Include="Microsoft.NET.Sdk.Functions" Version="3.0.11" />
     <PackageReference Include="Microsoft.Owin.Security.OAuth" Version="4.1.1" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.9.0" />
   </ItemGroup>
   <ItemGroup>

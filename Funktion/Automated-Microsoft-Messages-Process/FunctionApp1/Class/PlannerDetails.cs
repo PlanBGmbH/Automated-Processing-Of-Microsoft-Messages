@@ -1,23 +1,27 @@
-﻿using Newtonsoft.Json;
-using System;
-using System.Collections.Generic;
-using System.Text;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using Newtonsoft.Json;
 
 namespace FunctionApp1.Class
 {
-    class PlannerDetails
+    /// <summary>
+    /// PlannerDetails.
+    /// </summary>
+    internal class PlannerDetails
     {
-        //
-        // Summary:
-        //     The PlannerTaskDetails constructor
-        public PlannerDetails() {
-
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PlannerDetails"/> class.
+        /// PlannerDetails.
+        /// </summary>
+        public PlannerDetails()
+        {
         }
 
-
-       
+        /// <summary>
+        /// Gets or Sets Description.
+        /// </summary>
         [JsonProperty(NullValueHandling = NullValueHandling.Ignore, PropertyName = "description", Required = Required.Default)]
         public string Description { get; set; }
-     
     }
 }

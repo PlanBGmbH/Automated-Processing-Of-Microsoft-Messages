@@ -1,12 +1,21 @@
-﻿using System;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace FunctionApp1.Class
 {
+    /// <summary>
+    /// RootPlannerMessage.
+    /// </summary>
     [Serializable]
-    class RootPlannerMessage
+    internal class RootPlannerMessage
     {
-             public List<PlannerMessage> rootPlannerMessage { get; set; }
+        /// <summary>
+        /// Gets or Sets RootPlannerMessage1.
+        /// </summary>
+        public List<PlannerMessage> RootPlannerMessage1 { get; set; }
     }
 }

@@ -1,4 +1,7 @@
-﻿using Newtonsoft.Json;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -18,6 +21,7 @@ namespace FunctionApp1.Class
         public bool category5 { get; set; }
         public bool category6 { get; set; }
     }
+
     [Serializable]
     public class Details
     {
@@ -26,6 +30,7 @@ namespace FunctionApp1.Class
         [JsonProperty("@odata.type")]
         public string OdataType { get; set; }
     }
+
     [Serializable]
     public class PlannerTask
     {
@@ -44,5 +49,4 @@ namespace FunctionApp1.Class
         [JsonProperty("@odata.type")]
         public string OdataType { get; set; }
     }
-
 }

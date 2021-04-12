@@ -1,4 +1,7 @@
-﻿using Microsoft.Graph;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using Microsoft.Graph;
 
 namespace FunctionApp1
 {

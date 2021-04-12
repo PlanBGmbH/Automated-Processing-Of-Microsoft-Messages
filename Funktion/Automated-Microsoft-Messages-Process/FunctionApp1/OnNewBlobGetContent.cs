@@ -1,46 +1,50 @@
+// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Security;
+using System.Security.Claims;
+using System.Threading.Tasks;
+
+using Azure.Storage.Blobs;
+using Azure.Storage.Blobs.Models;
+using FunctionApp1.Class;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
-using FunctionApp1.Class;
-using Newtonsoft.Json;
 using Microsoft.Graph;
-using Microsoft.Identity.Client;
 using Microsoft.Graph.Auth;
-using System.Security;
+using Microsoft.Identity.Client;
 using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using System.Threading.Tasks;
-using System.Security.Claims;
-using System.Linq;
-using Azure.Storage.Blobs;
-using Azure.Storage.Blobs.Models;
-using System.Runtime.Serialization;
-using System.Runtime.Serialization.Formatters.Binary;
-using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace FunctionApp1
 {
+    /// <summary>
+    /// OnNewBlobGetContent.
+    /// </summary>
     public static class OnNewBlobGetContent
     {
+        /// <summary>
+        /// Run.
+        /// </summary>
+        /// <param name="myBlob">myBlob.</param>
+        /// <param name="name">name.</param>
+        /// <param name="log">log.</param>
         [FunctionName("OnNewBlobGetContent")]
         public static async void Run([BlobTrigger("newmessages/{name}", Connection = "blobConnectionString")] Stream myBlob, string name, ILogger log)
         {
             log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {myBlob.Length} Bytes");
-
-
-            RootPlannerMessage rootPlannerMessage;
             PlannerMessage plannerMessage;
-
 
             IFormatter formatter = new BinaryFormatter();
             myBlob.Seek(0, SeekOrigin.Begin);
             var o = (RootPlannerMessage)formatter.Deserialize(myBlob);
-
-
-
-
-
 
             var clientId = System.Environment.GetEnvironmentVariable("client_id");
             var secret = System.Environment.GetEnvironmentVariable("client_secret");
@@ -54,14 +58,7 @@ namespace FunctionApp1
                 securePwd.AppendChar(password[i]);
             }
 
-
-
             BlobContainerClient blobContainer = new BlobContainerClient(connectionString, "newmessages");
-
-
-            //BlobDownloadInfo download = await 
-
-
 
             string redirect = "https://localhost/queueTrigger";
             string authority = "https://login.microsoftonline.com/54a5c794-f6e6-4606-b86a-f7318722bee6";
@@ -81,9 +78,8 @@ namespace FunctionApp1
 
             Microsoft.Graph.PlannerTask existingTask = new Microsoft.Graph.PlannerTask();
 
-            foreach (var item in o.rootPlannerMessage)
+            foreach (var item in o.RootPlannerMessage1)
             {
-
                 plannerMessage = item;
 
                 Microsoft.Graph.PlannerTask newTask = new Microsoft.Graph.PlannerTask();
@@ -91,10 +87,12 @@ namespace FunctionApp1
                 {
                     newTask.DueDateTime = plannerMessage.DueDate;
                 }
+
                 newTask.OrderHint = " !";
                 newTask.Title = plannerMessage.Title;
                 newTask.PlanId = System.Environment.GetEnvironmentVariable("messageCenterPlanId");
-                //Set Action Category
+
+                // Set Action Category
                 PlannerAppliedCategories cat = new PlannerAppliedCategories();
 
                 if (plannerMessage.Categories.Contains("Action"))
@@ -105,7 +103,8 @@ namespace FunctionApp1
                 {
                     cat.Category1 = false;
                 }
-                //Set Plan for Change Category
+
+                // Set Plan for Change Category
                 if (plannerMessage.Categories.Contains("Plan for Change"))
                 {
                     cat.Category2 = true;
@@ -114,7 +113,8 @@ namespace FunctionApp1
                 {
                     cat.Category2 = false;
                 }
-                //Set Prevent or Fix Issues Category
+
+                // Set Prevent or Fix Issues Category
                 if (plannerMessage.Categories.Contains("Fix Issues"))
                 {
                     cat.Category3 = true;
@@ -123,7 +123,8 @@ namespace FunctionApp1
                 {
                     cat.Category3 = false;
                 }
-                //Set Advisory Category
+
+                // Set Advisory Category
                 if (plannerMessage.Categories.Contains("Advisory"))
                 {
                     cat.Category4 = true;
@@ -132,7 +133,8 @@ namespace FunctionApp1
                 {
                     cat.Category4 = false;
                 }
-                //Set Awareness Category
+
+                // Set Awareness Category
                 if (plannerMessage.Categories.Contains("Awareness"))
                 {
                     cat.Category5 = true;
@@ -141,7 +143,8 @@ namespace FunctionApp1
                 {
                     cat.Category5 = false;
                 }
-                //Set Stay Informed Category
+
+                // Set Stay Informed Category
                 if (plannerMessage.Categories.Contains("Stay Informed"))
                 {
                     cat.Category6 = true;
@@ -150,75 +153,60 @@ namespace FunctionApp1
                 {
                     cat.Category6 = false;
                 }
+
                 newTask.BucketId = plannerMessage.BucketId;
                 newTask.AppliedCategories = cat;
 
-                //newTask.Assignments = new PlannerAssignments
-                //{
-                //    AdditionalData = new Dictionary<string, object>()
-                //     {
-                //      {plannerMessage.Assignee, "{\"@odata.type\":\"#microsoft.graph.plannerAssignment\",\"orderHint\":\" !\"}"}
-                //     }
-                //};
+                newTask.Assignments = new PlannerAssignments
+                {
+                    AdditionalData = new Dictionary<string, object>()
+                     {
+                      { plannerMessage.Assignee, "{\"@odata.type\":\"#microsoft.graph.plannerAssignment\",\"orderHint\":\" !\"}" },
+                     },
+                };
 
                 string description = plannerMessage.Description.Replace("&amp", "&");
                 description = description.Replace("[\u201C\u201D]", "\"");
                 description = description.Replace("“", "\"");
                 description = description.Replace("’", "'");
                 description = description.Replace("�", "'");
-                description = description.Replace("</p>", "");
-                description = description.Replace("<p>", "");
-                description = description.Replace("</li>", "");
-                description = description.Replace("<li>", "");
-                description = description.Replace("<ul>", "");
-                description = description.Replace("<ul>", "");
+                description = description.Replace("</p>", string.Empty);
+                description = description.Replace("<p>", string.Empty);
+                description = description.Replace("</li>", string.Empty);
+                description = description.Replace("<li>", string.Empty);
+                description = description.Replace("<ul>", string.Empty);
+                description = description.Replace("<ul>", string.Empty);
 
                 newTask.Details = new PlannerTaskDetails
                 {
-                    Description = description
+                    Description = description,
                 };
-
-
 
                 Class.PlannerTask plannertask = new Class.PlannerTask();
 
-
-
-
-
-
                 try
                 {
+                    string jsonString = JsonConvert.SerializeObject(newTask);
 
-                
-                string jsonString = JsonConvert.SerializeObject(newTask);
+                    plannertask = JsonConvert.DeserializeObject<Class.PlannerTask>(jsonString);
 
-                plannertask = JsonConvert.DeserializeObject<Class.PlannerTask>(jsonString);
+                    MemoryStream stream = new MemoryStream();
+                    formatter = new BinaryFormatter();
+                    formatter.Serialize(stream, plannertask);
 
-                MemoryStream stream = new MemoryStream();
-                formatter = new BinaryFormatter();
-                formatter.Serialize(stream, plannertask);
+                    stream.Position = 0;
+                    string blobName = string.Format("NewTask-{0}-{1}", newTask.Title, newTask.BucketId);
+                    BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+                    blobContainerUpload.UploadBlob(blobName, stream);
 
-                stream.Position = 0;
-                string blobName = String.Format("NewTask-{0}-{1}", newTask.Title,newTask.BucketId);
-                BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
-                            blobContainerUpload.UploadBlob(blobName, stream);
-
-
-                var tmp = await graphClient.Planner.Tasks
-                                        .Request()
-                                        .AddAsync(newTask);
-
+                    var tmp = await graphClient.Planner.Tasks
+                                            .Request()
+                                            .AddAsync(newTask);
                 }
                 catch (Exception)
                 {
-
-                    
                 }
-                var tsst = "asd";
             }
-
-
         }
     }
 }

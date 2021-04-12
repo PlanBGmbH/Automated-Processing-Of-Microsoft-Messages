@@ -1,4 +1,7 @@
-﻿using System;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using System;
 using System.Collections.Generic;
 using System.Text;
 

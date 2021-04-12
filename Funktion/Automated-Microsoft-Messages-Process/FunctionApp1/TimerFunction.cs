@@ -1,25 +1,33 @@
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
 using System;
-using System.Net.Http;
-using System.Net.Http.Headers;
-using FunctionApp1.Class;
-using Microsoft.Azure.WebJobs;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading.Tasks;
-using System.Security;
-using Microsoft.Identity.Client;
-using Microsoft.Graph.Auth;
-using Microsoft.Graph;
-using Azure.Storage.Blobs;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security;
+using System.Threading.Tasks;
+
+using Azure.Storage.Blobs;
+using FunctionApp1.Class;
 using Microsoft.Azure.Storage.Blob;
+using Microsoft.Azure.WebJobs;
+using Microsoft.Extensions.Logging;
+using Microsoft.Graph;
+using Microsoft.Graph.Auth;
+using Microsoft.Identity.Client;
+using Newtonsoft.Json;
 
 namespace FunctionApp1
 {
-    public static class Function1
+    /// <summary>
+    /// TimerFunction.
+    /// </summary>
+    public static class TimerFunction
     {
         static readonly HttpClient client = new HttpClient();
 
@@ -29,10 +37,6 @@ namespace FunctionApp1
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
-
-
-            //
-            HttpResponseMessage response;
             string connectionString = System.Environment.GetEnvironmentVariable("blobConnectionString");
             string baseAddress = System.Environment.GetEnvironmentVariable("baseAddress");
             string grant_type = "client_credentials";
@@ -40,6 +44,11 @@ namespace FunctionApp1
             string client_secret = System.Environment.GetEnvironmentVariable("client_secret");
             string resource = "https://manage.office.com";
             string messageUriString = System.Environment.GetEnvironmentVariable("messageUri");
+            Guid guid = Guid.NewGuid();
+            var methodName = nameof(OnTimerGetMessages);
+            var trace = new Dictionary<string, string>();
+            EventId eventId = new EventId(guid.GetHashCode(), "Automated-MS-Message-Process");
+            bool hasError = false;
             var form = new Dictionary<string, string>
                 {
                     {"grant_type", grant_type},
@@ -50,7 +59,6 @@ namespace FunctionApp1
             HttpResponseMessage tokenResponse = await client.PostAsync(baseAddress, new FormUrlEncodedContent(form));
             var jsonContent = await tokenResponse.Content.ReadAsStringAsync();
             Token tok = JsonConvert.DeserializeObject<Token>(jsonContent);
-
 
             Uri messageUri = new Uri(messageUriString);
             client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(tok.TokenType, tok.AccessToken);
@@ -63,19 +71,13 @@ namespace FunctionApp1
             PlannerMessage plannerMessage;
             RootPlannerMessage rootPlannerMessage;
 
-
-
             BlobContainerClient blobContainer = new BlobContainerClient(connectionString, "newmessages");
-
-
 
             using (StreamReader r = new StreamReader(@"C:\Development\AbschProj\Funktion\Automated-Microsoft-Messages-Process\FunctionApp1\Configuration\AssigneeListValues.json"))
             {
                 string json = r.ReadToEnd();
                 assigneeList = JsonConvert.DeserializeObject<RootAssigneeList>(json);
             }
-
-
 
             var clientId = System.Environment.GetEnvironmentVariable("client_id");
             var secret = System.Environment.GetEnvironmentVariable("client_secret");
@@ -109,26 +111,16 @@ namespace FunctionApp1
 
             bool exists = true;
             rootPlannerMessage = new RootPlannerMessage();
-            rootPlannerMessage.rootPlannerMessage = new List<PlannerMessage>();
+            rootPlannerMessage.RootPlannerMessage1 = new List<PlannerMessage>();
 
-
-
-            foreach (var message in messageRoot.value)
+            foreach (var message in messageRoot.Value)
             {
-
                 foreach (var assignee in assigneeList.AssigneeList)
                 {
-
-
-
                     try
                     {
-
-
-
                         if (assignee.bucketName == message.AffectedWorkloadDisplayNames[0])
                         {
-
                             foreach (var item in tasks)
                             {
                                 try
@@ -144,43 +136,36 @@ namespace FunctionApp1
                                 }
                                 catch (Exception)
                                 {
-
                                     throw;
                                 }
-
                             }
+
                             if (exists)
                             {
-
-
-
-
-
                                 plannerMessage = new PlannerMessage();
                                 plannerMessage.Id = message.Id;
                                 plannerMessage.Title = message.Title;
                                 plannerMessage.Categories = message.ActionType + "," + message.Classification + "," + message.Category;
                                 plannerMessage.DueDate = message.ActionRequiredByDate;
                                 plannerMessage.Updated = message.LastUpdatedTime;
-                                string FullMessage = "";
+                                string FullMessage = string.Empty;
                                 foreach (var item in message.Messages)
                                 {
                                     FullMessage += item.MessageText;
                                 }
+
                                 plannerMessage.Description = FullMessage;
                                 plannerMessage.Reference = message.ExternalLink;
                                 plannerMessage.Product = message.AffectedWorkloadDisplayNames[0];
                                 plannerMessage.BucketId = assignee.bucketId;
                                 plannerMessage.Assignee = assignee.assigneeId;
 
-
-                                rootPlannerMessage.rootPlannerMessage.Add(plannerMessage);
+                                rootPlannerMessage.RootPlannerMessage1.Add(plannerMessage);
                             }
                             else
                             {
                                 string blobName = String.Format("NewTask-{0}-{1}", message.Title, assignee.bucketId);
                                 BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
-
 
                                 Microsoft.Graph.PlannerTask taskFromBlob;
                                 Microsoft.Azure.Storage.CloudStorageAccount storageAccount = Microsoft.Azure.Storage.CloudStorageAccount.Parse(connectionString);
@@ -188,70 +173,84 @@ namespace FunctionApp1
                                 CloudBlobContainer container = serviceClient.GetContainerReference($"existingmessages");
                                 bool somethingChanged = false;
                                 IFormatter formatter = new BinaryFormatter();
+                                CloudBlockBlob blob = null;
                                 try
                                 {
-                                    CloudBlockBlob blob = container.GetBlockBlobReference($"{blobName}");
+                                    blob = container.GetBlockBlobReference($"{blobName}");
                                     string dwadawd = blob.DownloadTextAsync().Result;
                                     var text = await blob.DownloadTextAsync();
                                     taskFromBlob = JsonConvert.DeserializeObject<Microsoft.Graph.PlannerTask>(text);
-                                   
-                                 
+
                                     if (taskFromBlob.AppliedCategories != existingTask.AppliedCategories)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.Assignments != existingTask.Assignments)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.BucketId != existingTask.BucketId)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.CompletedDateTime != existingTask.CompletedDateTime)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.CreatedBy != existingTask.CreatedBy)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.CreatedDateTime != existingTask.CreatedDateTime)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.Details != existingTask.Details)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.DueDateTime != existingTask.DueDateTime)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.Id != existingTask.Id)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.ODataType != existingTask.ODataType)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.OrderHint != existingTask.OrderHint)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.PercentComplete != existingTask.PercentComplete)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.PlanId != existingTask.PlanId)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.StartDateTime != existingTask.StartDateTime)
                                     {
                                         somethingChanged = true;
                                     }
+
                                     if (taskFromBlob.Title != existingTask.Title)
                                     {
                                         somethingChanged = true;
@@ -259,11 +258,7 @@ namespace FunctionApp1
                                 }
                                 catch (Exception e)
                                 {
-
                                 }
-
-                            
-                               
 
                                 if (somethingChanged)
                                 {
@@ -280,6 +275,9 @@ namespace FunctionApp1
                                     stream.Position = 0;
 
                                     BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+
+                                    blob.UploadFromStream(stream);
+
                                     blobContainerUpload.DeleteBlob(blobName);
                                     blobContainerUpload.UploadBlob(blobName, stream);
                                 }
@@ -290,9 +288,9 @@ namespace FunctionApp1
                     {
                         Console.WriteLine(e);
                     }
-
                 }
             }
+
             try
             {
                 MemoryStream stream = new MemoryStream();
@@ -307,14 +305,24 @@ namespace FunctionApp1
             }
             catch (Exception e)
             {
-                Console.WriteLine(e);
-                throw;
+                hasError = true;
+                trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
+            }
+            finally
+            {
+                log.LogTrace(eventId, $"'{methodName}' - finished");
+                log.LogInformation(eventId, $"'{methodName}' - finished", trace);
             }
 
-            return "";
+            if (hasError)
+            {
+                throw new Exception($"{methodName} failed");
+            }
 
+            return string.Empty;
         }
-
-
     }
 }

@@ -1,4 +1,7 @@
-﻿using Microsoft.IdentityModel.Clients.ActiveDirectory;
+﻿// Copyright (c) PlanB. GmbH. All rights reserved.
+// Author: Peter Schneider
+
+using Microsoft.IdentityModel.Clients.ActiveDirectory;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
