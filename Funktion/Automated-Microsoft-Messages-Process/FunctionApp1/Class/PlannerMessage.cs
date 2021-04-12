@@ -4,6 +4,7 @@ using System.Text;
 
 namespace FunctionApp1.Class
 {
+    [Serializable]
     class PlannerMessage
     {
         public string Product { get; set; }
