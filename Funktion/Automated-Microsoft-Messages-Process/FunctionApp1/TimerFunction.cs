@@ -22,7 +22,7 @@ using Microsoft.Graph.Auth;
 using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 
-namespace FunctionApp1
+namespace TimerFunction
 {
     /// <summary>
     /// TimerFunction.
@@ -35,14 +35,12 @@ namespace FunctionApp1
         private static readonly HttpClient Client = new HttpClient();
 
         /// <summary>
-        ///
+        /// OnTimerGetMessages.
         /// </summary>
         /// <param name="myTimer">myTimer.</param>
         /// <param name="log">log.</param>
-        /// <returns>A <see cref="Task{TResult}"/> representing the result of the asynchronous operation.</returns>
         [FunctionName("OnTimerGetMessages")]
-        [return: Queue("myqueue-items")]
-        public static async Task<string> OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
+        public static async void OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
@@ -143,9 +141,13 @@ namespace FunctionApp1
                                         break;
                                     }
                                 }
-                                catch (Exception)
+                                catch (Exception e)
                                 {
-                                    throw;
+                                    hasError = true;
+                                    trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                                    trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                                    log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                                    log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                                 }
                             }
 
@@ -174,19 +176,19 @@ namespace FunctionApp1
                             else
                             {
                                 string blobName = string.Format("NewTask-{0}-{1}", message.Title, assignee.BucketId);
-                                BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
 
+                                bool somethingChanged = false;
+                                BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
                                 Microsoft.Graph.PlannerTask taskFromBlob;
                                 Microsoft.Azure.Storage.CloudStorageAccount storageAccount = Microsoft.Azure.Storage.CloudStorageAccount.Parse(connectionString);
                                 CloudBlobClient serviceClient = storageAccount.CreateCloudBlobClient();
                                 CloudBlobContainer container = serviceClient.GetContainerReference($"existingmessages");
-                                bool somethingChanged = false;
                                 IFormatter formatter = new BinaryFormatter();
                                 CloudBlockBlob blob = null;
                                 try
                                 {
+
                                     blob = container.GetBlockBlobReference($"{blobName}");
-                                    string dwadawd = blob.DownloadTextAsync().Result;
                                     var text = await blob.DownloadTextAsync();
                                     taskFromBlob = JsonConvert.DeserializeObject<Microsoft.Graph.PlannerTask>(text);
 
@@ -276,31 +278,43 @@ namespace FunctionApp1
 
                                 if (somethingChanged)
                                 {
-                                    Class.PlannerTask plannertask = new Class.PlannerTask();
+                                    try
+                                    {
 
-                                    string jsonString = JsonConvert.SerializeObject(existingTask);
 
-                                    plannertask = JsonConvert.DeserializeObject<Class.PlannerTask>(jsonString);
+                                        FunctionApp1.Class.PlannerTask plannertask = new FunctionApp1.Class.PlannerTask();
 
-                                    MemoryStream stream = new MemoryStream();
-                                    formatter = new BinaryFormatter();
-                                    formatter.Serialize(stream, plannertask);
+                                        string jsonString = JsonConvert.SerializeObject(existingTask);
 
-                                    stream.Position = 0;
+                                        plannertask = JsonConvert.DeserializeObject<FunctionApp1.Class.PlannerTask>(jsonString);
 
-                                    BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+                                        MemoryStream stream = new MemoryStream();
+                                        formatter = new BinaryFormatter();
+                                        formatter.Serialize(stream, plannertask);
 
-                                    blob.UploadFromStream(stream);
+                                        stream.Position = 0;
 
-                                    blobContainerUpload.DeleteBlob(blobName);
-                                    blobContainerUpload.UploadBlob(blobName, stream);
+                                        BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+
+                                        blob.UploadFromStream(stream);
+                                    }
+                                    catch (Exception e)
+                                    {
+                                        hasError = true;
+                                        trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                                        trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                                        log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                                        log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
+                                    }
                                 }
                             }
                         }
                     }
                     catch (Exception e)
                     {
-                        Console.WriteLine(e);
+                        hasError = true;
+                        log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                        log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                     }
                 }
             }
@@ -315,7 +329,6 @@ namespace FunctionApp1
                 DateTime time = DateTime.Now;
                 string blobName = string.Format("newmessages-{0}", time.Ticks);
                 blobContainer.UploadBlob(blobName, stream);
-                return blobName;
             }
             catch (Exception e)
             {
@@ -331,12 +344,11 @@ namespace FunctionApp1
                 log.LogInformation(eventId, $"'{methodName}' - finished", trace);
             }
 
-            if (hasError)
-            {
-                throw new Exception($"{methodName} failed");
-            }
+            //if (hasError)
+            //{
+            //    throw new Exception($"{methodName} failed");
+            //}
 
-            return string.Empty;
         }
     }
 }

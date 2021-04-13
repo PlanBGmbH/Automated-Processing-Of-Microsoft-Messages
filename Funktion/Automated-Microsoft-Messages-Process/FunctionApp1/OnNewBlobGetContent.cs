@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.Serialization;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Security;
@@ -40,11 +41,18 @@ namespace FunctionApp1
         public static async void Run([BlobTrigger("newmessages/{name}", Connection = "blobConnectionString")] Stream myBlob, string name, ILogger log)
         {
             log.LogInformation($"C# Blob trigger function Processed blob\n Name:{name} \n Size: {myBlob.Length} Bytes");
-            PlannerMessage plannerMessage;
+            PlannerMessage plannerMessage = null;
 
             IFormatter formatter = new BinaryFormatter();
             myBlob.Seek(0, SeekOrigin.Begin);
             var o = (RootPlannerMessage)formatter.Deserialize(myBlob);
+
+            Guid guid = Guid.NewGuid();
+            var methodName = nameof(OnNewBlobGetContent);
+            var trace = new Dictionary<string, string>();
+            EventId eventId = new EventId(guid.GetHashCode(), "Automated-MS-Message-Process");
+            PlannerAppliedCategories cat = new PlannerAppliedCategories();
+            bool hasError = false;
 
             var clientId = System.Environment.GetEnvironmentVariable("client_id");
             var secret = System.Environment.GetEnvironmentVariable("client_secret");
@@ -77,81 +85,103 @@ namespace FunctionApp1
                             .GetAsync();
 
             Microsoft.Graph.PlannerTask existingTask = new Microsoft.Graph.PlannerTask();
-
+            RootPlannerMessage RootPlannerMessage1 = null;
             foreach (var item in o.RootPlannerMessage1)
             {
-                plannerMessage = item;
-
                 Microsoft.Graph.PlannerTask newTask = new Microsoft.Graph.PlannerTask();
-                if (plannerMessage.DueDate != null)
+                try
                 {
-                    newTask.DueDateTime = plannerMessage.DueDate;
+                    plannerMessage = item;
+
+                    if (plannerMessage.DueDate != null)
+                    {
+                        newTask.DueDateTime = plannerMessage.DueDate;
+                    }
+
+                    newTask.OrderHint = " !";
+                    newTask.Title = plannerMessage.Title;
+                    newTask.PlanId = System.Environment.GetEnvironmentVariable("messageCenterPlanId");
+                }
+                catch (Exception e)
+                {
+                    hasError = true;
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                    log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                    log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                 }
 
-                newTask.OrderHint = " !";
-                newTask.Title = plannerMessage.Title;
-                newTask.PlanId = System.Environment.GetEnvironmentVariable("messageCenterPlanId");
+                try
+                {
+                    cat = new PlannerAppliedCategories();
 
-                // Set Action Category
-                PlannerAppliedCategories cat = new PlannerAppliedCategories();
+                    // Set Action Category
+                    if (plannerMessage.Categories.Contains("Action"))
+                    {
+                        cat.Category1 = true;
+                    }
+                    else
+                    {
+                        cat.Category1 = false;
+                    }
 
-                if (plannerMessage.Categories.Contains("Action"))
-                {
-                    cat.Category1 = true;
-                }
-                else
-                {
-                    cat.Category1 = false;
-                }
+                    // Set Plan for Change Category
+                    if (plannerMessage.Categories.Contains("Plan for Change"))
+                    {
+                        cat.Category2 = true;
+                    }
+                    else
+                    {
+                        cat.Category2 = false;
+                    }
 
-                // Set Plan for Change Category
-                if (plannerMessage.Categories.Contains("Plan for Change"))
-                {
-                    cat.Category2 = true;
-                }
-                else
-                {
-                    cat.Category2 = false;
-                }
+                    // Set Prevent or Fix Issues Category
+                    if (plannerMessage.Categories.Contains("Fix Issues"))
+                    {
+                        cat.Category3 = true;
+                    }
+                    else
+                    {
+                        cat.Category3 = false;
+                    }
 
-                // Set Prevent or Fix Issues Category
-                if (plannerMessage.Categories.Contains("Fix Issues"))
-                {
-                    cat.Category3 = true;
-                }
-                else
-                {
-                    cat.Category3 = false;
-                }
+                    // Set Advisory Category
+                    if (plannerMessage.Categories.Contains("Advisory"))
+                    {
+                        cat.Category4 = true;
+                    }
+                    else
+                    {
+                        cat.Category4 = false;
+                    }
 
-                // Set Advisory Category
-                if (plannerMessage.Categories.Contains("Advisory"))
-                {
-                    cat.Category4 = true;
-                }
-                else
-                {
-                    cat.Category4 = false;
-                }
+                    // Set Awareness Category
+                    if (plannerMessage.Categories.Contains("Awareness"))
+                    {
+                        cat.Category5 = true;
+                    }
+                    else
+                    {
+                        cat.Category5 = false;
+                    }
 
-                // Set Awareness Category
-                if (plannerMessage.Categories.Contains("Awareness"))
-                {
-                    cat.Category5 = true;
+                    // Set Stay Informed Category
+                    if (plannerMessage.Categories.Contains("Stay Informed"))
+                    {
+                        cat.Category6 = true;
+                    }
+                    else
+                    {
+                        cat.Category6 = false;
+                    }
                 }
-                else
+                catch (Exception e)
                 {
-                    cat.Category5 = false;
-                }
-
-                // Set Stay Informed Category
-                if (plannerMessage.Categories.Contains("Stay Informed"))
-                {
-                    cat.Category6 = true;
-                }
-                else
-                {
-                    cat.Category6 = false;
+                    hasError = true;
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                    log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                    log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                 }
 
                 newTask.BucketId = plannerMessage.BucketId;
@@ -160,9 +190,9 @@ namespace FunctionApp1
                 newTask.Assignments = new PlannerAssignments
                 {
                     AdditionalData = new Dictionary<string, object>()
-                     {
-                      { plannerMessage.Assignee, "{\"@odata.type\":\"#microsoft.graph.plannerAssignment\",\"orderHint\":\" !\"}" },
-                     },
+                      {
+                          { plannerMessage.Assignee, "{\"@odata.type\":\"#microsoft.graph.plannerAssignment\",\"orderHint\":\" !\"}" },
+                      },
                 };
 
                 string description = plannerMessage.Description.Replace("&amp", "&");
@@ -197,15 +227,25 @@ namespace FunctionApp1
                     stream.Position = 0;
                     string blobName = string.Format("NewTask-{0}-{1}", newTask.Title, newTask.BucketId);
                     BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
-                    blobContainerUpload.UploadBlob(blobName, stream);
+                    // blobContainerUpload.UploadBlob(blobName, stream);
 
                     var tmp = await graphClient.Planner.Tasks
                                             .Request()
                                             .AddAsync(newTask);
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    hasError = true;
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} - rejected", e.Message);
+                    trace.Add($"{MethodBase.GetCurrentMethod().Name} -  rejected - StackTrace", e.StackTrace);
+                    log.LogError(eventId, $"'{methodName}' - rejected", trace, e);
+                    log.LogInformation(eventId, $"'{methodName}' - rejected", trace);
                 }
+            }
+
+            if (hasError)
+            {
+                throw new Exception($"{methodName} failed");
             }
         }
     }

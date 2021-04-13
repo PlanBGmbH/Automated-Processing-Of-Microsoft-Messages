@@ -2,8 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\Funktion",
-    "\\Funktion\\Automated-Microsoft-Messages-Process"
+    "\\Funktion\\Automated-Microsoft-Messages-Process",
+    "\\Funktion\\Automated-Microsoft-Messages-Process\\FunctionApp1"
   ],
-  "SelectedNode": "\\Funktion\\Automated-Microsoft-Messages-Process",
+  "SelectedNode": "\\Funktion\\Automated-Microsoft-Messages-Process\\FunctionApp1\\OnNewBlobGetContent.cs",
   "PreviewInSolutionExplorer": false
 }
