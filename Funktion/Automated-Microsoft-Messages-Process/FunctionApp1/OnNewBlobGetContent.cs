@@ -98,7 +98,7 @@ namespace FunctionApp1
                         newTask.DueDateTime = plannerMessage.DueDate;
                     }
 
-                    newTask.OrderHint = " !";
+                    //newTask.OrderHint = " !";
                     newTask.Title = plannerMessage.Title;
                     newTask.PlanId = System.Environment.GetEnvironmentVariable("messageCenterPlanId");
                 }
@@ -186,12 +186,11 @@ namespace FunctionApp1
 
                 newTask.BucketId = plannerMessage.BucketId;
                 newTask.AppliedCategories = cat;
-
                 newTask.Assignments = new PlannerAssignments
                 {
-                    AdditionalData = new Dictionary<string, object>()
+                    AdditionalData = new Dictionary<string, Object>()
                       {
-                          { plannerMessage.Assignee, "{\"@odata.type\":\"#microsoft.graph.plannerAssignment\",\"orderHint\":\" !\"}" },
+                          { plannerMessage.Assignee, new Assignee("#microsoft.graph.plannerAssignment"," !") },
                       },
                 };
 
@@ -226,8 +225,8 @@ namespace FunctionApp1
 
                     stream.Position = 0;
                     string blobName = string.Format("NewTask-{0}-{1}", newTask.Title, newTask.BucketId);
-                    BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
-                    // blobContainerUpload.UploadBlob(blobName, stream);
+                    BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "plannermessages");
+                    blobContainerUpload.UploadBlob(blobName, stream);
 
                     var tmp = await graphClient.Planner.Tasks
                                             .Request()

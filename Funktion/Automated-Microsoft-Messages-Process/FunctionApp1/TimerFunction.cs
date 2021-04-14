@@ -40,7 +40,7 @@ namespace TimerFunction
         /// <param name="myTimer">myTimer.</param>
         /// <param name="log">log.</param>
         [FunctionName("OnTimerGetMessages")]
-        public static async void OnTimerGetMessages([TimerTrigger("* * * * * *")] TimerInfo myTimer, ILogger log)
+        public static async void OnTimerGetMessages([TimerTrigger("2 34 10 * * *")] TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"C# Timer trigger function executed at: {DateTime.Now}");
 
@@ -178,11 +178,11 @@ namespace TimerFunction
                                 string blobName = string.Format("NewTask-{0}-{1}", message.Title, assignee.BucketId);
 
                                 bool somethingChanged = false;
-                                BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "existingmessages");
+                                BlobContainerClient blobContainerDownload = new BlobContainerClient(connectionString, "plannermessages");
                                 Microsoft.Graph.PlannerTask taskFromBlob;
                                 Microsoft.Azure.Storage.CloudStorageAccount storageAccount = Microsoft.Azure.Storage.CloudStorageAccount.Parse(connectionString);
                                 CloudBlobClient serviceClient = storageAccount.CreateCloudBlobClient();
-                                CloudBlobContainer container = serviceClient.GetContainerReference($"existingmessages");
+                                CloudBlobContainer container = serviceClient.GetContainerReference($"plannermessages");
                                 IFormatter formatter = new BinaryFormatter();
                                 CloudBlockBlob blob = null;
                                 try
@@ -294,7 +294,7 @@ namespace TimerFunction
 
                                         stream.Position = 0;
 
-                                        BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "existingmessages");
+                                        BlobContainerClient blobContainerUpload = new BlobContainerClient(connectionString, "plannermessages");
 
                                         blob.UploadFromStream(stream);
                                     }
